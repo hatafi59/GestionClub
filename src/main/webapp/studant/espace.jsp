@@ -10,7 +10,7 @@
     if (mesClubs == null) mesClubs = (List<MembreClub>) session.getAttribute("mesClubs");
     List<Evenement> mesEvents = (List<Evenement>) request.getAttribute("listMesEvents");
     if (mesEvents == null) mesEvents = (List<Evenement>) session.getAttribute("mesEvents");
-    SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+    SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
     String msg = request.getParameter("msg");
 %>
 
@@ -20,7 +20,7 @@
     <meta charset="UTF-8">
     <title>Mon Espace - ENSA Clubs</title>
     <style>
-        /* Réutilisation du style de base + styles spécifiques dashboard */
+        /* (Styles CSS inchangés) */
         :root {
             --primary: #095bca;      /* Bleu principal */
             --secondary: #2172ac;    /* Bleu secondaire */
@@ -99,16 +99,30 @@
         <thead>
         <tr>
             <th>Club</th>
-            <th>Date d'adhésion</th>
+            <th>Date de Demande</th>
+            <th>Date de Traitement</th> <th>Status</th>
             <th>Mon Rôle</th>
             <th>Actions</th>
         </tr>
         </thead>
         <tbody>
-        <% for (MembreClub mc : mesClubs) { %>
+        <% for (MembreClub mc : mesClubs) {
+            boolean isPending = "EN_ATTENTE".equalsIgnoreCase(mc.getStatut());
+            String buttonText = isPending ? "Annuler" : "Quitter";
+        %>
         <tr>
             <td><strong><%= mc.getRoleClub().getClub().getNom() %></strong></td>
-            <td><%= mc.getDateAdhesion() %></td>
+
+            <%-- Date de Demande (Toujours définie) --%>
+            <td><%= mc.getDateDemande() != null ? sdf.format(mc.getDateDemande()) : "N/A" %></td>
+
+            <%-- Date de Traitement (CORRECTION POUR GÉRER NULL) --%>
+            <td>
+                <%-- Si la date de traitement est NULL, on affiche "En attente" ou "N/A" --%>
+                <%= mc.getDateTraitement() != null ? sdf.format(mc.getDateTraitement()) : "En attente de reponse" %>
+            </td>
+
+            <td><%=mc.getStatut()%></td>
             <td>
                 <%
                     String roleName = mc.getRoleClub().getNomRole();
@@ -121,8 +135,12 @@
                 <form action="${pageContext.request.contextPath}/etudiant?action=quitterClub" method="post" onsubmit="return confirm('Voulez-vous vraiment quitter ce club ?');">
                     <input type="hidden" name="action" value="quitterClub">
                     <input type="hidden" name="clubId" value="<%= mc.getRoleClub().getClub().getClubID() %>">
-                    <button type="submit" class="btn-danger">Quitter</button>
+                    <button type="submit" class="btn-danger">
+                        <%= buttonText %>
+                    </button>
                 </form>
+                <% } else if ("REFUSE".equalsIgnoreCase(mc.getStatut())) { %>
+                <small class="text-muted" style="color:var(--accent);">Demande refusée</small>
                 <% } else { %>
                 <small class="text-muted">Président (Gestion via Bureau)</small>
                 <% } %>
@@ -132,11 +150,11 @@
         </tbody>
     </table>
     <% } else { %>
-    <p>Vous n'êtes membre d'aucun club pour le moment. <a href="${pageContext.request.contextPath}/index.jsp">Parcourir les clubs</a>.</p>
+    <p>Vous n'êtes membre d'aucun club pour le moment.</p>
     <% } %>
 
     <div class="section-title">
-        <h3>Liste des Clubs</h3>
+        <h3>Liste des Événements</h3>
     </div>
     <% if (mesEvents != null && !mesEvents.isEmpty()) { %>
     <div class="grid-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">

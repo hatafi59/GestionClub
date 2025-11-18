@@ -53,7 +53,7 @@ public class GestionClubServiceImpl implements IGestionClubService {
     public boolean isMembre(int utilisateurId, int clubId) {
         List<MembreClub> membres = membreDao.findByUtilisateur(utilisateurId);
         for(MembreClub mc : membres) {
-            if(mc.getRoleClub().getClub().getClubID() == clubId) {
+            if(mc.getRoleClub().getClub().getClubID() == clubId && mc.getStatut().equals("ACCEPTE")) {
                 return true;
             }
         }
@@ -66,27 +66,52 @@ public class GestionClubServiceImpl implements IGestionClubService {
         List<MembreClub> membres = membreDao.findByUtilisateur(utilisateurId);
         for(MembreClub mc : membres) {
             if(mc.getRoleClub().getClub().getClubID() == clubId) {
+                // Un utilisateur ne peut avoir qu'un seul statut par club
                 return mc.getStatut();
             }
         }
-        return "NOT_MEMBRE";
+        // Retour d'une valeur qui n'est pas un statut réel
+        return "NON_MEMBRE";
     }
-
     @Override
     public void adhererAuClub(int utilisateurId, int clubId) {
-        boolean dejaMembre = isMembre(utilisateurId, clubId);
-        if(dejaMembre) {
-            System.out.println("Vous etes deja membre du club");
+        // 1. VÉRIFICATION: Membre Actif (ACCEPTE)
+        if (isMembre(utilisateurId, clubId)) {
+            System.out.println("Vous etes deja membre ACTIF du club");
             return ;
         }
+
+        // 2. VÉRIFICATION: Demande en cours (EN_ATTENTE)
+        String statutActuel = obtenirStatutAdhesion(utilisateurId, clubId);
+
+        if ("EN_ATTENTE".equalsIgnoreCase(statutActuel)) {
+            System.out.println("Votre demande est déjà EN ATTENTE de validation.");
+            return;
+        }
+        // Si statutActuel est "REFUSE" ou "NON_MEMBRE" (nouveau statut) ou "NON_TROUVE", le processus continue.
+
+        // 3. RECUPERATION DES ENTITÉS
         Utilisateur u = utilisateurDao.findById(utilisateurId);
         Club c = clubDao.findById(clubId);
+
+        // 4. CRÉATION DU RÔLE SI MANQUANT
         RoleClub roleMembre = roleClubDao.findByNomAndClub("MEMBRE", clubId);
+
+        if (roleMembre == null) {
+            // CORRECTION 2 : Le rôle créé doit s'appeler "MEMBRE" (c'est le RÔLE),
+            // et non "NOT_MEMBRE_YET" (qui est un STATUT/valeur par défaut).
+            roleMembre = new RoleClub();
+            roleMembre.setNomRole("MEMBRE");
+            roleMembre.setClub(c);
+            roleClubDao.save(roleMembre);
+        }
+
+        // 5. CRÉATION DE L'ADHÉSION
         MembreClub mc = new MembreClub();
         mc.setUtilisateur(u);
         mc.setRoleClub(roleMembre);
         mc.setDateDemande(new Date());
-        mc.setStatut("EN_ATTENTE");
+        mc.setStatut("EN_ATTENTE"); // L'utilisateur est défini comme demandeur
         membreDao.save(mc);
     }
 
@@ -122,6 +147,7 @@ public class GestionClubServiceImpl implements IGestionClubService {
             System.out.println("Vous n'etes pas membre du club");
             return ;
         }
+
         List<MembreClub> membres = membreDao.findByUtilisateur(utilisateurId);
         for(MembreClub mc : membres) {
             if(mc.getRoleClub().getClub().getClubID() == clubId) {
@@ -174,6 +200,10 @@ public class GestionClubServiceImpl implements IGestionClubService {
                 break;
             }
         }
+    }
+    @Override
+    public List<Evenement> consulterEvenementsDuClub(int clubId) {
+        return eventDao.findByClub(clubId);
     }
 
     @Override

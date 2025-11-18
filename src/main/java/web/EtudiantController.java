@@ -23,6 +23,7 @@ public class EtudiantController extends HttpServlet {
         HttpSession session = req.getSession();
         Utilisateur user = (Utilisateur) session.getAttribute("user");
         String ctx = req.getContextPath();
+        System.out.println("ctx = " + ctx);
 
 
         // 1. SÉCURITÉ
@@ -38,7 +39,7 @@ public class EtudiantController extends HttpServlet {
             chargerDonneesEspace(req, session, user.getUtilisateurID());
             // B. IMPORTANT : On utilise forward (pas redirect) pour garder les données
             // Assurez-vous que le fichier est dans : src/main/webapp/etudiant/espace.jsp
-            req.getRequestDispatcher("/studant/espace.jsp").forward(req, resp);
+            req.getRequestDispatcher(ctx +"/studant/espace.jsp").forward(req, resp);
         }
         else if( action==null || "home".equals(action)) {
             resp.sendRedirect(ctx +"/common/home.jsp");

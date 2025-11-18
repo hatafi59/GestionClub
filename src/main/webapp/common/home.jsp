@@ -327,7 +327,6 @@
             Événements
         </button>
     </div>
-
     <div id="section-clubs" class="content-section active-section">
         <div class="section-title">
             <h3>Liste des Clubs</h3>
@@ -349,12 +348,6 @@
                         }
             %>
             <div class="card">
-                <div class="card-header">
-                    <div class="card-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-3.5 16c1.365 0 2.557-.805 3.146-1.992.604 1.207 1.812 2.026 3.22 1.992 1.841-.044 3.281-1.698 3.125-3.531-.133-1.565-1.386-2.757-2.953-2.757-.743 0-1.423.277-1.945.737v-3.449h-3.186v3.438c-.526-.453-1.205-.726-1.947-.726-1.568 0-2.819 1.193-2.953 2.759-.155 1.831 1.285 3.484 3.126 3.529h.367z"/></svg>
-                    </div>
-                </div>
-
                 <div class="card-body">
                     <h4 class="card-title"><%= club.getNom() %></h4>
                     <p class="card-desc"><%= club.getDescription() %></p>
@@ -362,18 +355,37 @@
                     <div class="card-footer">
                         <% if (user == null) { %>
                         <div class="badge-login" style="color:#999; font-style:italic;">Connectez-vous pour adhérer</div>
-                        <% } else if (estDejaMembre) { %>
+                        <% } else if (estDejaMembre) {
+                            // 1. Récupérer l'objet MembreClub correspondant
+                            MembreClub adhesion = null;
+                            for (MembreClub mc : mesClubs) {
+                                if (mc.getRoleClub().getClub().getClubID() == club.getClubID()) {
+                                    adhesion = mc;
+                                    break;
+                                }
+                            }
+
+                            // 2. Vérifier si l'adhésion est acceptée pour afficher le badge vert
+                            if (adhesion != null && "ACCEPTE".equalsIgnoreCase(adhesion.getStatut())) {
+                        %>
                         <div class="badge-member">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="fill:var(--success)"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm-1.999 14.413-3.713-3.705L7.7 11.292l2.299 2.295 5.294-5.294 1.414 1.414-6.706 6.706z"/></svg>
-                            Déjà Membre
+                            Membre Actif
                         </div>
-                        <% } else if(!status.isEmpty()){ %>
+                        <% } else if (!"NON_MEMBRE".equalsIgnoreCase(status) && !"".equals(status)) { %>
                         <div class="badge-member" style="background-color:#fff3cd; color:#856404; border-color:#ffeeba;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="fill:#856404;"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm.001 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                            <%=status%>
+                             <%=status%>
                         </div>
                         <% } else { %>
-                        <form action="etudiant?action=rejoindreClub" method="post" class="action-form">
+                        <form action="<%=ctx%>/etudiant" method="post" class="action-form">
+                            <input type="hidden" name="action" value="rejoindreClub">
+                            <input type="hidden" name="clubId" value="<%= club.getClubID() %>">
+                            <button type="submit" class="btn btn-primary">Adhérer au club</button>
+                        </form>
+                        <% } %>
+                        <% } else { %>
+                        <form action="<%=ctx%>/etudiant" method="post" class="action-form">
                             <input type="hidden" name="action" value="rejoindreClub">
                             <input type="hidden" name="clubId" value="<%= club.getClubID() %>">
                             <button type="submit" class="btn btn-primary">Adhérer au club</button>

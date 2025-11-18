@@ -32,6 +32,7 @@ public interface IGestionClubService {
     void assignRoleToMember(int utilisateurId, int clubId, String roleName);
     boolean estPresidentDuClub(int utilisateurId, int clubId); // Vérification sécurité
     RoleClub isPresident(int utilisateurId); // Vérification sécurité
+    List<Evenement> consulterEvenementsDuClub(int clubId);
 
     // --- CAS D'UTILISATION : ADMIN ---
     void assignerRole(int utilisateurId, String roleName); // Pour gestion des rôles

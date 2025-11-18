@@ -12,6 +12,9 @@ public class AdminController extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         HttpSession session = req.getSession();
         Boolean isAdmin = (Boolean) session.getAttribute("isAdmin");
+        String ctx = req.getContextPath();
+
+
 
         if (isAdmin == null || !isAdmin) {
             resp.sendRedirect("login.jsp");

@@ -11,9 +11,16 @@
 %>
 
 <nav class="navbar">
+    <% if (userHeader == null) { %>
     <a href="<%= ctx %>/" class="navbar-brand">
         <h2>ENSA Agadir</h2>
     </a>
+    <% } else { %>
+    <a href="<%= ctx %>/etudiant?action=home" class="navbar-brand">
+        <h2>ENSA Agadir</h2>
+    </a>
+    <% } %>
+
 
     <div class="nav-actions">
 
