@@ -166,7 +166,7 @@
         }
     %>
 
-    <form action="auth" method="post" id="register-form">
+    <form action="auth?action=register" method="post" id="register-form">
         <input type="hidden" name="action" value="register">
 
         <input type="text" id="username" name="username" placeholder="Nom d'utilisateur" required class="form-control">
@@ -179,7 +179,7 @@
         <button type="submit" class="btn">S'inscrire</button>
     </form>
 
-    <a href="accueil" class="link">Retour à l'accueil</a>
+    <a href="<%= request.getContextPath() %>/" class="link">Retour à l'accueil</a>
 </div>
 
 <script>

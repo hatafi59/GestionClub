@@ -1,24 +1,19 @@
 package web;
-import metier.entities.MembreClub;
-import metier.entities.RoleClub;
-import org.mindrot.jbcrypt.BCrypt;
-import metier.entities.Utilisateur;
+
+import metier.entities.*;
 import metier.service.IGestionClubService;
 import metier.service.impl.GestionClubServiceImpl;
-// import org.mindrot.jbcrypt.BCrypt; // Idéalement, utilisez cette librairie
+import org.mindrot.jbcrypt.BCrypt;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Pattern;
 
-@WebServlet("/auth")
+@WebServlet(name = "AuthServlet", urlPatterns = {"/auth"})
 public class AuthServlet extends HttpServlet {
 
-    // Bonne pratique : Définir les actions en constantes pour éviter les fautes de frappe
     private static final String ACTION_LOGIN = "login";
     private static final String ACTION_REGISTER = "register";
     private static final String ACTION_LOGOUT = "logout";
@@ -34,31 +29,33 @@ public class AuthServlet extends HttpServlet {
         } else if (ACTION_REGISTER.equals(action)) {
             handleRegister(req, resp);
         } else {
-            resp.sendRedirect("login.jsp");
+            resp.sendRedirect(req.getContextPath() + "/login.jsp");
         }
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String action = req.getParameter("action");
+        String ctx = req.getContextPath();
+
         if (ACTION_LOGOUT.equals(action)) {
-            HttpSession session = req.getSession(false); // false = ne pas créer si elle n'existe pas
+            HttpSession session = req.getSession(false); // Récupère la session s'il y en a une
             if (session != null) {
-                session.invalidate();
+                session.invalidate(); // 1. On détruit la session côté serveur
             }
-            resp.sendRedirect("accueil");
-        } else {
-            resp.sendRedirect("accueil"); // Redirection par défaut
         }
+
+        // 2. IMPORTANT : On redirige vers la SERVLET "/index"
+        // Si on redirige vers "/index.jsp", la page sera vide (pas de données).
+        resp.sendRedirect(ctx + "/");
     }
 
-    // --- Méthodes privées pour séparer la logique (Clean Code) ---
+    // --- LOGIQUE MÉTIER ---
 
     private void handleLogin(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String email = req.getParameter("email");
         String pass = req.getParameter("password");
-
-        // Appel au service qui doit maintenant vérifier le hash (et non le texte clair)
+        String ctx = req.getContextPath();
 
         Utilisateur user = service.authentifier(email, pass);
 
@@ -66,18 +63,36 @@ public class AuthServlet extends HttpServlet {
             HttpSession session = req.getSession();
             session.setAttribute("user", user);
 
-            //verifier si il est president d'un club
+            // --- CORRECTION : Charger les données de l'utilisateur TOUT DE SUITE ---
+            List<Club> clubs = service.consulterTousLesClubs();
+            List<Evenement> events = service.consulterTousLesEvenements();
+            session.setAttribute("tousClubs", clubs);
+            session.setAttribute("tousEvents", events);
+            List<MembreClub> mesClubs = service.consulterMesClubs(user.getUtilisateurID());
+            session.setAttribute("mesClubs", mesClubs);
+            List<Evenement> mesEvents = service.consulterMesEvenements(user.getUtilisateurID());
+            session.setAttribute("mesEvents", mesEvents);
+            // ----------------------------------------------------------------------
 
-            // Vérification sécurisée du rôle avec Stream
+            // Rôles
+            RoleClub president = service.isPresident(user.getUtilisateurID());
+            session.setAttribute("president", president);
+
             boolean isAdmin = user.getRoles().stream()
                     .anyMatch(r -> "ADMIN".equalsIgnoreCase(r.getNomRole()));
-
-            RoleClub president=service.isPresident(user.getUtilisateurID());
-            if(president != null){
-                session.setAttribute("president", president);
-            }
             session.setAttribute("isAdmin", isAdmin);
-            resp.sendRedirect("accueil");
+
+            System.out.println("LOGIN SUCCESS : " + user.getEmail());
+
+            if (isAdmin) {
+                resp.sendRedirect(ctx + "/admin");
+            } else if (president != null) {
+                resp.sendRedirect(ctx + "/president");
+            } else {
+                // Vers la servlet Etudiant
+                resp.sendRedirect(ctx + "/etudiant?action=home");
+            }
+
         } else {
             req.setAttribute("error", "Email ou mot de passe incorrect.");
             req.getRequestDispatcher("login.jsp").forward(req, resp);
@@ -86,43 +101,51 @@ public class AuthServlet extends HttpServlet {
 
     private void handleRegister(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         try {
-            // 1. Récupération et nettoyage des entrées (.trim() enlève les espaces accidentels)
-            String nom = req.getParameter("username"); // Attention: nom du champ dans register.jsp
+            String nom = req.getParameter("username");
             String email = req.getParameter("email");
             String pass = req.getParameter("password");
             String niveau = req.getParameter("niveauEtude");
 
-            if (service.emailExiste(email)) { // Vous devez ajouter cette méthode dans votre Service
+            // 1. Validation basique
+            if (estVide(nom) || estVide(email) || estVide(pass)) {
+                req.setAttribute("error", "Tous les champs sont obligatoires.");
+                req.getRequestDispatcher("register.jsp").forward(req, resp);
+                return;
+            }
+
+            // 2. Vérification existence email
+            if (service.emailExiste(email)) {
                 req.setAttribute("error", "Cet email est déjà utilisé.");
                 req.getRequestDispatcher("register.jsp").forward(req, resp);
                 return;
             }
 
-            // 4. Hachage du mot de passe (Sécurité)
+            // 3. Hashage
             String hash = BCrypt.hashpw(pass, BCrypt.gensalt());
 
-            // 5. Création de l'objet
+            // 4. Création
             Utilisateur newUser = new Utilisateur();
             newUser.setNomUtilisateur(nom.trim());
             newUser.setEmail(email.trim());
             newUser.setMotDePasseHash(hash);
-            newUser.setNiveauEtude(niveau.trim());
-            // 6. Sauvegarde via le service
-            Utilisateur  createdUser =service.creerCompte(newUser);
+            newUser.setNiveauEtude(niveau != null ? niveau.trim() : "");
 
-            service.assignerRole(createdUser.getUtilisateurID(), "ETUDIANT"); // Rôle par défaut
-            // 7. Succès
-            req.setAttribute("message", "Compte créé ! Connectez-vous.");
+            Utilisateur createdUser = service.creerCompte(newUser);
+
+            // 5. Attribution rôle par défaut
+            service.assignerRole(createdUser.getUtilisateurID(), "ETUDIANT");
+
+            // 6. Succès -> Renvoi vers Login
+            req.setAttribute("message", "Compte créé avec succès ! Veuillez vous connecter.");
             req.getRequestDispatcher("login.jsp").forward(req, resp);
 
         } catch (Exception e) {
-            e.printStackTrace(); // Log serveur (ne pas afficher au client)
-            req.setAttribute("error", "Une erreur technique est survenue. Réessayez.");
+            e.printStackTrace();
+            req.setAttribute("error", "Erreur technique lors de l'inscription.");
             req.getRequestDispatcher("register.jsp").forward(req, resp);
         }
     }
 
-    // Utilitaire pour vérifier les chaines vides
     private boolean estVide(String str) {
         return str == null || str.trim().isEmpty();
     }

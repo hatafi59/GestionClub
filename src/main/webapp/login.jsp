@@ -165,18 +165,14 @@
         }
     %>
 
-    <form action="auth" method="post" id="login-form">
+    <form action="auth?action=login" method="post" id="login-form">
         <input type="hidden" name="action" value="login">
-
         <input type="email" name="email" placeholder="Email" required class="form-control">
-
         <input type="password" name="password" placeholder="Mot de passe" required class="form-control">
-
         <button type="submit" class="btn">Se connecter</button>
     </form>
 
-    <a href="accueil" class="back-link">Retour à l'accueil</a>
-</div>
+    <a href="<%= request.getContextPath() %>/" class="back-link">Retour à l'accueil</a></div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {

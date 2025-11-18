@@ -1,23 +1,29 @@
 package web;
 
-import metier.entities.MembreClub;
-import metier.entities.Utilisateur;
-import metier.service.IGestionClubService;
-import metier.service.impl.GestionClubServiceImpl;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
-import java.util.List;
 
 @WebServlet("/admin")
 public class AdminController extends HttpServlet {
 
-    private IGestionClubService service = new GestionClubServiceImpl();
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        HttpSession session = req.getSession();
+        Boolean isAdmin = (Boolean) session.getAttribute("isAdmin");
+
+        if (isAdmin == null || !isAdmin) {
+            resp.sendRedirect("login.jsp");
+            return;
+        }
+
+        // Redirige vers le dashboard admin
+        req.getRequestDispatcher("/admin/dashboard.jsp").forward(req, resp);
+    }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-
+        // Logique pour supprimer un club, un utilisateur, etc.
     }
 }

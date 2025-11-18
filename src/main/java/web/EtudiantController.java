@@ -1,9 +1,11 @@
 package web;
 
+import metier.entities.Evenement;
 import metier.entities.MembreClub;
 import metier.entities.Utilisateur;
 import metier.service.IGestionClubService;
 import metier.service.impl.GestionClubServiceImpl;
+import metier.entities.Club; // Import manquant
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -18,45 +20,71 @@ public class EtudiantController extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        req.getRequestDispatcher("home.jsp").forward(req, resp);
+        HttpSession session = req.getSession();
+        Utilisateur user = (Utilisateur) session.getAttribute("user");
+
+
+        // 1. SÉCURITÉ
+        if (user == null) {
+            resp.sendRedirect(req.getContextPath() + "/login.jsp");
+            return;
+        }
+        String action = req.getParameter("action");
+
+        // 2. Aiguillage
+        if ("monEspace".equals(action)) {
+            // --- PAGE MES CLUBS ---
+            resp.sendRedirect("/student/espace.jsp");
+        }
+        else if("home".equals(action)) {
+            resp.sendRedirect("/common/home.jsp");
+        }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         HttpSession session = req.getSession();
         Utilisateur user = (Utilisateur) session.getAttribute("user");
+        String ctx = req.getContextPath();
 
-        // Sécurité : Si pas connecté, redirection login
         if (user == null) {
-            resp.sendRedirect("login.jsp");
+            resp.sendRedirect(ctx + "/login.jsp");
             return;
         }
-
         String action = req.getParameter("action");
-        if("monEspace".equals(action)) {
-            // Afficher tous les clubs auxquels l'étudiant appartient
-            List<MembreClub> mesClubs = service.consulterMesClubs(user.getUtilisateurID());
-            req.setAttribute("mesClubs", mesClubs);
-            req.getRequestDispatcher("student/espace.jsp").forward(req, resp);
 
-        }
-        else if("allClubs".equals(action)) {
-            req.getRequestDispatcher("student/espace.jsp").forward(req, resp);
+        try {
+            if ("rejoindreClub".equals(action)) {
+                int clubId = Integer.parseInt(req.getParameter("clubId"));
+                service.adhererAuClub(user.getUtilisateurID(), clubId);
 
+                // Mise à jour session
+                updateSessionData(session, user.getUtilisateurID());
 
-        }
-        else if ("rejoindreClub".equals(action)) {
-            int clubId = Integer.parseInt(req.getParameter("clubId"));
-            service.adhererAuClub(user.getUtilisateurID(), clubId);
+                // CORRECTION : On redirige vers /etudiant, pas /accueil
+                resp.sendRedirect(ctx + "/etudiant?msg=adhesion_ok");
+            }
 
-            // Mise à jour de l'utilisateur en session pour voir les changements
-            // (Dans une vraie app, on rechargerait l'user depuis la DB)
-            resp.sendRedirect("accueil?msg=adhesion_ok");
+            else if ("participerEvent".equals(action)) {
+                int eventId = Integer.parseInt(req.getParameter("eventId"));
+                service.sInscrireEvenement(user.getUtilisateurID(), eventId);
+
+                // Mise à jour session
+                updateSessionData(session, user.getUtilisateurID());
+
+                // CORRECTION : On redirige vers /etudiant
+                resp.sendRedirect(ctx + "/etudiant?msg=inscription_ok");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp.sendRedirect(ctx + "/etudiant?error=operation_failed");
         }
-        else if ("participerEvent".equals(action)) {
-            int eventId = Integer.parseInt(req.getParameter("eventId"));
-            service.sInscrireEvenement(user.getUtilisateurID(), eventId);
-            resp.sendRedirect("accueil?msg=inscription_ok");
-        }
+    }
+
+    private void updateSessionData(HttpSession session, int userId) {
+        // Cette méthode est très utile pour garder la barre de navigation à jour
+        List<MembreClub> mesClubs = service.consulterMesClubs(userId);
+        // List<Evenement> mesEvents = service.consulterMesEvenements(userId); // Si besoin
+        session.setAttribute("mesClubs", mesClubs);
     }
 }

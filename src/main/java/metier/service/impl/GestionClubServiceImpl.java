@@ -62,24 +62,25 @@ public class GestionClubServiceImpl implements IGestionClubService {
     @Override
     public void adhererAuClub(int utilisateurId, int clubId) {
 
-        // 2. Récupérer les objets
         Utilisateur u = utilisateurDao.findById(utilisateurId);
         Club c = clubDao.findById(clubId);
 
-        boolean dejaMembre = isMembre(utilisateurId, clubId);
-        if(dejaMembre) {
-            System.out.println("Vous etes deja membre du club");
-            return ;
+        if (isMembre(utilisateurId, clubId)) {
+            return;
         }
-        // 3. Récupérer le rôle "Membre" par défaut pour ce club
-        // (Suppose qu'on a créé un rôle "MEMBRE" pour chaque club à la création)
-        RoleClub roleMembre = roleClubDao.findByNomAndClub("MEMBRE", clubId);
-        roleMembre = new RoleClub();
-        roleMembre.setNomRole("MEMBRE");
-        roleMembre.setClub(c);
-        roleClubDao.save(roleMembre);
 
-        // 4. Créer l'adhésion
+        // 1. On cherche si le rôle "MEMBRE" existe DÉJÀ pour ce club
+        RoleClub roleMembre = roleClubDao.findByNomAndClub("MEMBRE", clubId);
+
+        // 2. S'il n'existe pas, on le crée (une seule fois par club)
+        if (roleMembre == null) {
+            roleMembre = new RoleClub();
+            roleMembre.setNomRole("MEMBRE");
+            roleMembre.setClub(c);
+            roleClubDao.save(roleMembre);
+        }
+
+        // 3. Créer l'adhésion avec le rôle récupéré ou créé
         MembreClub adhesion = new MembreClub(u, roleMembre, new Date());
         membreDao.save(adhesion);
     }

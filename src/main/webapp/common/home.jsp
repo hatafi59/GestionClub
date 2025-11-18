@@ -8,10 +8,10 @@
     Utilisateur user = (Utilisateur) session.getAttribute("user");
     Boolean isAdmin = (Boolean) session.getAttribute("isAdmin");
     // On s'assure que les listes ne sont pas nulles pour éviter les erreurs
-    List<Evenement> listeEvents = (List<Evenement>) request.getAttribute("tousEvents");
-    List<Club> listeClubs = (List<Club>) request.getAttribute("tousClubs");
-    List<Evenement> mesEvents = (List<Evenement>) request.getAttribute("mesEvents");
-    List<MembreClub> mesClubs = (List<MembreClub>) request.getAttribute("mesClubs");
+    List<Evenement> listeEvents = (List<Evenement>) session.getAttribute("tousEvents");
+    List<Club> listeClubs = (List<Club>) session.getAttribute("tousClubs");
+    List<Evenement> mesEvents = (List<Evenement>) session.getAttribute("mesEvents");
+    List<MembreClub> mesClubs = (List<MembreClub>) session.getAttribute("mesClubs");
     if (listeEvents == null) {
         listeEvents = new ArrayList<>();
     }
@@ -30,7 +30,6 @@
     }
     RoleClub president = (RoleClub) session.getAttribute("president");
 %>
-<%@include file="header.jsp"%>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -231,6 +230,7 @@
     </style>
 </head>
 <body>
+<%@include file="header.jsp"%>
 <div class="container">
 
     <h3> Événements à venir</h3>
