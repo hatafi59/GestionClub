@@ -11,8 +11,8 @@
 %>
 
 <nav class="navbar">
-    <a href="<%= ctx %>/index" class="navbar-brand">
-        <h2>Gestion Clubs ENSA</h2>
+    <a href="<%= ctx %>/" class="navbar-brand">
+        <h2>ENSA Agadir</h2>
     </a>
 
     <div class="nav-actions">
@@ -23,10 +23,12 @@
             <a href="<%=ctx%>/register.jsp" class="btn-nav"> s'inscrire</a>
         <%-- CAS 2: L'utilisateur EST connecté --%>
         <% } else { %>
-
-        <span class="nav-welcome">Bonjour, <%= userHeader.getNomUtilisateur() %></span>
-
-        <a href="<%= ctx %>/etudiant" class="nav-link">Mon Espace</a>
+            <div class="nav-link">
+            <a href="<%= ctx %>/etudiant?action=home" >Home</a>
+            </div>
+            <div class="nav-link">
+            <a href="<%= ctx %>/etudiant?action=monEspace">Mon Espace</a>
+            </div>
 
         <% if (isAdminHeader) { %>
         <a href="<%= ctx %>/admin" class="admin-link">[Admin]</a>
@@ -39,6 +41,17 @@
 </nav>
 
 <style>
+    :root {
+        --primary: #095bca;
+        --secondary: #2172ac;
+        --accent: #ff6b6b;
+        --text-dark: #2d3436;
+        --text-light: #636e72;
+        --bg-light: #f9f9f9;
+        --white: #ffffff;
+        --shadow: 0 10px 20px rgba(0,0,0,0.08);
+        --radius: 16px;
+    }
     /* Styles spécifiques au Header */
     .navbar {
         background: #ffffff;
@@ -47,13 +60,13 @@
         justify-content: space-between; /* Logo à gauche, boutons à droite */
         align-items: center;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        border-bottom: 3px solid var(--primary-color, #007bff); /* Fallback color si var non définie */
+        border-bottom: 4px solid var(--accent); /* Fallback color si var non définie */
         margin-bottom: 20px;
     }
 
     .navbar-brand {
         text-decoration: none;
-        color: var(--primary-color, #007bff);
+        color: var(--text-dark);
     }
 
     .navbar-brand h2 {
@@ -67,15 +80,7 @@
         gap: 15px;
     }
 
-    .nav-link {
-        text-decoration: none;
-        color: #333;
-        font-weight: 500;
-        transition: color 0.3s;
-    }
-    .nav-link:hover {
-        color: var(--primary-color, #007bff);
-    }
+
 
     .admin-link {
         color: #dc3545; /* Rouge danger */
@@ -94,7 +99,7 @@
     /* Boutons spécifiques au header pour ne pas casser les boutons des cartes */
     .btn-nav {
         padding: 8px 15px;
-        background-color: var(--primary-color, #007bff);
+        background-color: var(--secondary, var(--primary));
         color: white;
         text-decoration: none;
         border-radius: 4px;
@@ -110,5 +115,65 @@
     }
     .btn-logout:hover {
         background-color: #5a6268;
+    }
+
+
+    /* Container (Le DIV) : Gère la bordure et masque ce qui dépasse */
+    .nav-link {
+        position: relative;
+        display: inline-block;
+        padding: 0; /* On enlève le padding ici, c'est le <a> qui le gère */
+        border: 2px solid var(--secondary); /* Bordure déplacée ici */
+        border-radius: 4px;
+        background: transparent;
+        cursor: pointer;
+        overflow: hidden; /* Important pour couper l'animation */
+        font-weight: 700;
+        margin: 0 5px; /* Un peu d'espace entre les boutons */
+    }
+
+    /* Le Lien (Le A) : Gère le texte et la zone de clic */
+    .nav-link a {
+        display: block;
+        padding: 0.2em 0.8em; /* Padding pour la taille du bouton */
+        text-decoration: none;
+        color: var(--secondary); /* Couleur initiale */
+        font-size: 18px;
+        position: relative;
+        z-index: 2; /* Le texte doit être AU-DESSUS de l'animation */
+        transition: color 0.4s;
+    }
+
+    /* L'Animation (Le balayage de fond) */
+    .nav-link::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--primary); /* Couleur de fond au survol */
+        z-index: 1; /* En dessous du texte */
+
+        /* Logique de l'animation Adam Giebl (adaptée) */
+        transform: translate(-100%, 0) skew(-20deg);
+        transform-origin: left;
+        transition: all 0.4s ease;
+        width: 150%; /* Plus large pour couvrir l'effet d'inclinaison */
+        left: -25%;  /* Centrer l'effet */
+    }
+
+    /* État Survol */
+    .nav-link:hover::before {
+        transform: translate(0, 0) skew(-20deg);
+    }
+
+    .nav-link:hover a {
+        color: white; /* Changement de couleur du texte */
+    }
+
+    /* État Actif (Clic) */
+    .nav-link:active::before {
+        background: linear-gradient(135deg, var(--primary), var(--secondary)); /* Couleur plus foncée au clic */
     }
 </style>

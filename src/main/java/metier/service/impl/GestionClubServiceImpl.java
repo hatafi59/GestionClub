@@ -59,31 +59,60 @@ public class GestionClubServiceImpl implements IGestionClubService {
         }
         return false;
     }
+
+
+    @Override
+    public String obtenirStatutAdhesion(int utilisateurId, int clubId) {
+        List<MembreClub> membres = membreDao.findByUtilisateur(utilisateurId);
+        for(MembreClub mc : membres) {
+            if(mc.getRoleClub().getClub().getClubID() == clubId) {
+                return mc.getStatut();
+            }
+        }
+        return "NOT_MEMBRE";
+    }
+
     @Override
     public void adhererAuClub(int utilisateurId, int clubId) {
-
+        boolean dejaMembre = isMembre(utilisateurId, clubId);
+        if(dejaMembre) {
+            System.out.println("Vous etes deja membre du club");
+            return ;
+        }
         Utilisateur u = utilisateurDao.findById(utilisateurId);
         Club c = clubDao.findById(clubId);
-
-        if (isMembre(utilisateurId, clubId)) {
-            return;
-        }
-
-        // 1. On cherche si le rôle "MEMBRE" existe DÉJÀ pour ce club
         RoleClub roleMembre = roleClubDao.findByNomAndClub("MEMBRE", clubId);
-
-        // 2. S'il n'existe pas, on le crée (une seule fois par club)
-        if (roleMembre == null) {
-            roleMembre = new RoleClub();
-            roleMembre.setNomRole("MEMBRE");
-            roleMembre.setClub(c);
-            roleClubDao.save(roleMembre);
-        }
-
-        // 3. Créer l'adhésion avec le rôle récupéré ou créé
-        MembreClub adhesion = new MembreClub(u, roleMembre, new Date());
-        membreDao.save(adhesion);
+        MembreClub mc = new MembreClub();
+        mc.setUtilisateur(u);
+        mc.setRoleClub(roleMembre);
+        mc.setDateDemande(new Date());
+        mc.setStatut("EN_ATTENTE");
+        membreDao.save(mc);
     }
+
+    @Override
+    public void accepterDemandeAdhesion(int membreClubId) {
+        MembreClub mc = membreDao.findById(membreClubId);
+        if(mc != null && mc.getStatut().equals("EN_ATTENTE")) {
+            mc.setStatut("ACCEPTE");
+            mc.setDateTraitement(new Date());
+            membreDao.update(mc);
+        }
+    }
+    @Override
+    public void refuserDemandeAdhesion(int membreClubId) {
+        MembreClub mc = membreDao.findById(membreClubId);
+        if(mc != null && mc.getStatut().equals("EN_ATTENTE")) {
+            mc.setStatut("REFUSE");
+            mc.setDateTraitement(new Date());
+            membreDao.update(mc);
+        }
+    }
+
+
+
+
+
 
     @Override
     public void quitterClub(int utilisateurId, int clubId) {

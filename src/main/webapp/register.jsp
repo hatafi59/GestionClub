@@ -170,7 +170,7 @@
         <input type="hidden" name="action" value="register">
 
         <input type="text" id="username" name="username" placeholder="Nom d'utilisateur" required class="form-control">
-        <input type="email" id="email" name="email" placeholder="Email" required class="form-control">
+        <input type="email" id="email" name="email" placeholder="prénom.nom@edu.uiz.ac.ma" required class="form-control">
         <input type="password" id="password" name="password" placeholder="Mot de passe" required class="form-control">
         <!-- confirmer le passwword-->
         <input type="password" id="passwordConfirm" name="passwordConfirm" placeholder="Confirmer le mot de passe" required class="form-control">
@@ -260,7 +260,7 @@
             }
 
             // 3. Validation: Format Email (RegEx JS)
-            const emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+            const emailPattern = /^[a-z]+\.[a-z]+@edu\.uiz\.ac\.ma$/;
             if (!emailPattern.test(email)) {
                 event.preventDefault();
                 showError("Format d'email invalide.");

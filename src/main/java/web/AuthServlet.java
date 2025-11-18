@@ -83,6 +83,8 @@ public class AuthServlet extends HttpServlet {
             session.setAttribute("isAdmin", isAdmin);
 
             System.out.println("LOGIN SUCCESS : " + user.getEmail());
+            System.out.println("isAdmin = " + isAdmin);
+            System.out.println("isPresident = " + (president != null));
 
             if (isAdmin) {
                 resp.sendRedirect(ctx + "/admin");
@@ -90,7 +92,7 @@ public class AuthServlet extends HttpServlet {
                 resp.sendRedirect(ctx + "/president");
             } else {
                 // Vers la servlet Etudiant
-                resp.sendRedirect(ctx + "/etudiant?action=home");
+                resp.sendRedirect(ctx + "/etudiant");
             }
 
         } else {

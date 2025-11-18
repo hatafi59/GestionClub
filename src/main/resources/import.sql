@@ -1,3 +1,5 @@
+Insert into roles (nom) values ('ADMIN');
+Insert into roles (nom) values ('ETUDIANT');
 
 INSERT INTO clubs (nom, description) VALUES ('AppsClub', 'Club dédié au développement d''applications mobiles et web. Il organise des ateliers de codage (iOS, Android, web), des hackathons, et des projets de groupe pour créer des applications utiles pour l''établissement ou pour participer à des concours.');
 INSERT INTO clubs (nom, description) VALUES ('ClubMecanique', 'Regroupe les passionnés de génie mécanique. Les membres travaillent sur des projets concrets comme la restauration de véhicules, la conception de prototypes (ex: drones, robots), ou la participation à des compétitions d''ingénierie.');

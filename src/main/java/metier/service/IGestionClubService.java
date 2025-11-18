@@ -19,11 +19,14 @@ public interface IGestionClubService {
     void sInscrireEvenement(int utilisateurId, int evenementId);
     List<MembreClub> consulterMesClubs(int utilisateurId);
     List<Evenement> consulterMesEvenements(int utilisateurId);
+    String obtenirStatutAdhesion(int utilisateurId, int clubId);
+
 
     // --- CAS D'UTILISATION : PRÉSIDENT ---
     void creerEvenement(Evenement evt);
     void supprimerEvenement(int evenementId);
-
+    void accepterDemandeAdhesion(int membreClubId);
+    void refuserDemandeAdhesion(int membreClubId);
     List<MembreClub> voirMembresDuClub(int clubId);
     void supprimerMembreDuClub(int utilisateurId, int clubId);
     void assignRoleToMember(int utilisateurId, int clubId, String roleName);

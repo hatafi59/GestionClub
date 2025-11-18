@@ -10,6 +10,7 @@ public interface IMembreClubDao extends IGenericDao<MembreClub> {
     // Ex: Si clubId = 1 (Club AppsClub), renvoie [MembreClub1, MembreClub2, ...]
     List<MembreClub> findByClub(int clubId);
     MembreClub findByUserAndClub(int userId, int clubId);
+    // verifier le statut d'un membre dans un club
 
 
 }
