@@ -9,7 +9,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.List;
-@WebServlet(name = "Servlet", urlPatterns = { ""})
+@WebServlet(name = "Servlet", urlPatterns = {""})
 public class servlet  extends HttpServlet{
     private IGestionClubService service = new GestionClubServiceImpl();
     @Override

@@ -28,7 +28,7 @@ public class EtudiantController extends HttpServlet {
 
         // 1. SÉCURITÉ
         if (user == null) {
-            resp.sendRedirect(req.getContextPath() + "/login.jsp");
+            resp.sendRedirect(req.getContextPath() + "/");
             return;
         }
         String action = req.getParameter("action");
@@ -53,7 +53,7 @@ public class EtudiantController extends HttpServlet {
         String ctx = req.getContextPath();
 
         if (user == null) {
-            resp.sendRedirect(ctx + "/login.jsp");
+            resp.sendRedirect(ctx + "/");
             return;
         }
         String action = req.getParameter("action");

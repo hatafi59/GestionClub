@@ -44,7 +44,7 @@ public class AdminController extends HttpServlet {
 
         // 1. SÉCURITÉ
         if (isAdmin == null || !isAdmin) {
-            resp.sendRedirect(ctx + "/login.jsp");
+            resp.sendRedirect(ctx + "/");
             return;
         }
         String sortBy = req.getParameter("sortBy");
@@ -127,7 +127,7 @@ public class AdminController extends HttpServlet {
         String ctx = req.getContextPath();
 
         if (isAdmin == null || !isAdmin) {
-            resp.sendRedirect(ctx + "/login.jsp");
+            resp.sendRedirect(ctx + "/");
             return;
         }
 

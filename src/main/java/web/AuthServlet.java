@@ -29,7 +29,7 @@ public class AuthServlet extends HttpServlet {
         } else if (ACTION_REGISTER.equals(action)) {
             handleRegister(req, resp);
         } else {
-            resp.sendRedirect(req.getContextPath() + "/login.jsp");
+            resp.sendRedirect(req.getContextPath() + "/");
         }
     }
 
@@ -39,14 +39,12 @@ public class AuthServlet extends HttpServlet {
         String ctx = req.getContextPath();
 
         if (ACTION_LOGOUT.equals(action)) {
-            HttpSession session = req.getSession(false); // Récupère la session s'il y en a une
+            HttpSession session = req.getSession(false);
             if (session != null) {
-                session.invalidate(); // 1. On détruit la session côté serveur
+                session.invalidate();
             }
         }
-
-        // 2. IMPORTANT : On redirige vers la SERVLET "/index"
-        // Si on redirige vers "/index.jsp", la page sera vide (pas de données).
+        // Redirection toujours vers l'accueil (index)
         resp.sendRedirect(ctx + "/");
     }
 
@@ -63,7 +61,7 @@ public class AuthServlet extends HttpServlet {
             HttpSession session = req.getSession();
             session.setAttribute("user", user);
 
-            // --- CORRECTION : Charger les données de l'utilisateur TOUT DE SUITE ---
+            // Chargement des données pour la session
             List<Club> clubs = service.consulterTousLesClubs();
             List<Evenement> events = service.consulterTousLesEvenements();
             session.setAttribute("tousClubs", clubs);
@@ -72,7 +70,6 @@ public class AuthServlet extends HttpServlet {
             session.setAttribute("mesClubs", mesClubs);
             List<Evenement> mesEvents = service.consulterMesEvenements(user.getUtilisateurID());
             session.setAttribute("mesEvents", mesEvents);
-            // ----------------------------------------------------------------------
 
             // Rôles
             RoleClub president = service.isPresident(user.getUtilisateurID());
@@ -82,22 +79,21 @@ public class AuthServlet extends HttpServlet {
                     .anyMatch(r -> "ADMIN".equalsIgnoreCase(r.getNomRole()));
             session.setAttribute("isAdmin", isAdmin);
 
-            System.out.println("LOGIN SUCCESS : " + user.getEmail());
-            System.out.println("isAdmin = " + isAdmin);
-            System.out.println("isPresident = " + (president != null));
-
+            // Redirection selon le rôle
             if (isAdmin) {
                 resp.sendRedirect(ctx + "/admin");
             } else if (president != null) {
                 resp.sendRedirect(ctx + "/president");
             } else {
-                // Vers la servlet Etudiant
                 resp.sendRedirect(ctx + "/etudiant");
             }
 
         } else {
-            req.setAttribute("error", "Email ou mot de passe incorrect.");
-            req.getRequestDispatcher("login.jsp").forward(req, resp);
+            // ERREUR LOGIN : On renvoie vers index.jsp avec un attribut spécifique "loginError"
+            req.setAttribute("loginError", "Email ou mot de passe incorrect.");
+            // IMPORTANT : Il faut recharger les données pour l'index car on fait un forward
+            chargerDonneesIndex(req);
+            req.getRequestDispatcher("/index.jsp").forward(req, resp);
         }
     }
 
@@ -110,22 +106,18 @@ public class AuthServlet extends HttpServlet {
 
             // 1. Validation basique
             if (estVide(nom) || estVide(email) || estVide(pass)) {
-                req.setAttribute("error", "Tous les champs sont obligatoires.");
-                req.getRequestDispatcher("register.jsp").forward(req, resp);
+                failRegister(req, resp, "Tous les champs sont obligatoires.");
                 return;
             }
 
             // 2. Vérification existence email
             if (service.emailExiste(email)) {
-                req.setAttribute("error", "Cet email est déjà utilisé.");
-                req.getRequestDispatcher("register.jsp").forward(req, resp);
+                failRegister(req, resp, "Cet email est déjà utilisé.");
                 return;
             }
 
-            // 3. Hashage
+            // 3. Hashage et Création
             String hash = BCrypt.hashpw(pass, BCrypt.gensalt());
-
-            // 4. Création
             Utilisateur newUser = new Utilisateur();
             newUser.setNomUtilisateur(nom.trim());
             newUser.setEmail(email.trim());
@@ -133,22 +125,34 @@ public class AuthServlet extends HttpServlet {
             newUser.setNiveauEtude(niveau != null ? niveau.trim() : "");
 
             Utilisateur createdUser = service.creerCompte(newUser);
-
-            // 5. Attribution rôle par défaut
             service.assignerRole(createdUser.getUtilisateurID(), "ETUDIANT");
 
-            // 6. Succès -> Renvoi vers Login
+            // SUCCÈS : On renvoie vers index avec un message de succès (qui ouvrira le Login)
             req.setAttribute("message", "Compte créé avec succès ! Veuillez vous connecter.");
-            req.getRequestDispatcher("login.jsp").forward(req, resp);
+            chargerDonneesIndex(req);
+            req.getRequestDispatcher("/index.jsp").forward(req, resp);
 
         } catch (Exception e) {
             e.printStackTrace();
-            req.setAttribute("error", "Erreur technique lors de l'inscription.");
-            req.getRequestDispatcher("register.jsp").forward(req, resp);
+            failRegister(req, resp, "Erreur technique lors de l'inscription.");
         }
+    }
+
+    private void failRegister(HttpServletRequest req, HttpServletResponse resp, String errorMsg) throws ServletException, IOException {
+        req.setAttribute("registerError", errorMsg); // Attribut spécifique "registerError"
+        chargerDonneesIndex(req);
+        req.getRequestDispatcher("/index.jsp").forward(req, resp);
     }
 
     private boolean estVide(String str) {
         return str == null || str.trim().isEmpty();
+    }
+
+    // Méthode utilitaire pour éviter la page blanche (index vide) lors du forward
+    private void chargerDonneesIndex(HttpServletRequest req) {
+        List<Club> clubs = service.consulterTousLesClubs();
+        List<Evenement> events = service.consulterTousLesEvenements();
+        req.setAttribute("tousClubs", clubs);
+        req.setAttribute("tousEvents", events);
     }
 }
