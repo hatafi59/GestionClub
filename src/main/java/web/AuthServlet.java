@@ -1,5 +1,8 @@
 package web;
 
+// IMPORTANT : Assurez-vous d'avoir créé la classe utils.JwtUtil comme indiqué précédemment
+import utils.JwtUtil;
+
 import metier.entities.*;
 import metier.service.IGestionClubService;
 import metier.service.impl.GestionClubServiceImpl;
@@ -39,6 +42,14 @@ public class AuthServlet extends HttpServlet {
         String ctx = req.getContextPath();
 
         if (ACTION_LOGOUT.equals(action)) {
+            // MODIFICATION JWT : Pour se déconnecter, on écrase le cookie avec une durée de vie de 0
+            Cookie cookie = new Cookie("auth_token", "");
+            cookie.setPath("/");      // Le chemin doit être identique à celui de la création
+            cookie.setMaxAge(0);      // 0 supprime le cookie immédiatement
+            cookie.setHttpOnly(true);
+            resp.addCookie(cookie);
+
+            // Optionnel : Invalider la session serveur si elle existe encore pour le nettoyage
             HttpSession session = req.getSession(false);
             if (session != null) {
                 session.invalidate();
@@ -58,26 +69,30 @@ public class AuthServlet extends HttpServlet {
         Utilisateur user = service.authentifier(email, pass);
 
         if (user != null) {
-            HttpSession session = req.getSession();
-            session.setAttribute("user", user);
+            // --- DÉBUT MODIFICATION JWT ---
 
-            // Chargement des données pour la session
-            List<Club> clubs = service.consulterTousLesClubs();
-            List<Evenement> events = service.consulterTousLesEvenements();
-            session.setAttribute("tousClubs", clubs);
-            session.setAttribute("tousEvents", events);
-            List<MembreClub> mesClubs = service.consulterMesClubs(user.getUtilisateurID());
-            session.setAttribute("mesClubs", mesClubs);
-            List<Evenement> mesEvents = service.consulterMesEvenements(user.getUtilisateurID());
-            session.setAttribute("mesEvents", mesEvents);
+            // 1. Générer le Token JWT grâce à la classe utilitaire
+            String token = JwtUtil.generateToken(user);
 
-            // Rôles
+            // 2. Créer le Cookie contenant le token
+            Cookie jwtCookie = new Cookie("auth_token", token);
+            jwtCookie.setHttpOnly(true); // Sécurité : empêche le JavaScript de lire le cookie (protection XSS)
+            jwtCookie.setPath("/");      // Accessible sur toute l'application
+            jwtCookie.setMaxAge(24 * 60 * 60); // Expire dans 1 jour (en secondes)
+
+            // 3. Ajouter le cookie à la réponse
+            resp.addCookie(jwtCookie);
+
+            // NOTE : On ne charge plus "tousClubs", "mesEvents" ici dans la session.
+            // C'est le JwtFilter qui rechargera l'utilisateur à chaque requête,
+            // et les Contrôleurs (EtudiantController, etc.) chargeront les listes nécessaires.
+
+            // --- FIN MODIFICATION JWT ---
+
+            // Vérification des rôles pour la redirection
             RoleClub president = service.isPresident(user.getUtilisateurID());
-            session.setAttribute("president", president);
-
             boolean isAdmin = user.getRoles().stream()
                     .anyMatch(r -> "ADMIN".equalsIgnoreCase(r.getNomRole()));
-            session.setAttribute("isAdmin", isAdmin);
 
             // Redirection selon le rôle
             if (isAdmin) {
@@ -91,7 +106,6 @@ public class AuthServlet extends HttpServlet {
         } else {
             // ERREUR LOGIN : On renvoie vers index.jsp avec un attribut spécifique "loginError"
             req.setAttribute("loginError", "Email ou mot de passe incorrect.");
-            // IMPORTANT : Il faut recharger les données pour l'index car on fait un forward
             chargerDonneesIndex(req);
             req.getRequestDispatcher("/index.jsp").forward(req, resp);
         }
@@ -139,7 +153,7 @@ public class AuthServlet extends HttpServlet {
     }
 
     private void failRegister(HttpServletRequest req, HttpServletResponse resp, String errorMsg) throws ServletException, IOException {
-        req.setAttribute("registerError", errorMsg); // Attribut spécifique "registerError"
+        req.setAttribute("registerError", errorMsg);
         chargerDonneesIndex(req);
         req.getRequestDispatcher("/index.jsp").forward(req, resp);
     }
@@ -148,7 +162,7 @@ public class AuthServlet extends HttpServlet {
         return str == null || str.trim().isEmpty();
     }
 
-    // Méthode utilitaire pour éviter la page blanche (index vide) lors du forward
+    // Méthode utilitaire pour éviter la page blanche (index vide) lors du forward en cas d'erreur
     private void chargerDonneesIndex(HttpServletRequest req) {
         List<Club> clubs = service.consulterTousLesClubs();
         List<Evenement> events = service.consulterTousLesEvenements();

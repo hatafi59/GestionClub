@@ -5,22 +5,33 @@
 <%@ page import="java.text.SimpleDateFormat" %>
 
 <%
-    // --- LOGIQUE JAVA (Inchangée) ---
+    // --- LOGIQUE MISE A JOUR POUR JWT ---
+
+    // L'utilisateur est remis en session par le JwtFilter, donc ceci fonctionne toujours
     Utilisateur user = (Utilisateur) session.getAttribute("user");
+
     Boolean isAdmin = (Boolean) session.getAttribute("isAdmin");
     if (isAdmin == null) isAdmin = false;
 
-    List<Evenement> listeEvents = (List<Evenement>) session.getAttribute("tousEvents");
-    List<Club> listeClubs = (List<Club>) session.getAttribute("tousClubs");
-    List<MembreClub> mesClubs = (List<MembreClub>) session.getAttribute("mesClubs");
+    // MODIFICATION CRUCIALE : On cherche d'abord dans la REQUÊTE (envoyé par le contrôleur)
+    // Si c'est null, on regarde en SESSION (au cas où)
 
+    List<Evenement> listeEvents = (List<Evenement>) request.getAttribute("tousEvents");
+    if (listeEvents == null) listeEvents = (List<Evenement>) session.getAttribute("tousEvents");
+
+    List<Club> listeClubs = (List<Club>) request.getAttribute("tousClubs");
+    if (listeClubs == null) listeClubs = (List<Club>) session.getAttribute("tousClubs");
+
+    List<MembreClub> mesClubs = (List<MembreClub>) request.getAttribute("mesClubs");
+    if (mesClubs == null) mesClubs = (List<MembreClub>) session.getAttribute("mesClubs");
+
+    // Initialisation des listes vides pour éviter les erreurs (NullPointerException)
     if (listeEvents == null) listeEvents = new ArrayList<>();
     if (listeClubs == null) listeClubs = new ArrayList<>();
     if (mesClubs == null) mesClubs = new ArrayList<>();
 
     SimpleDateFormat sdf = new SimpleDateFormat("dd MMMM yyyy à HH:mm");
 %>
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>

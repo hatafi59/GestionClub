@@ -1,11 +1,11 @@
 package web;
 
+import metier.entities.Club;
 import metier.entities.Evenement;
 import metier.entities.MembreClub;
 import metier.entities.Utilisateur;
 import metier.service.IGestionClubService;
 import metier.service.impl.GestionClubServiceImpl;
-import metier.entities.Club; // Import manquant
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -22,27 +22,36 @@ public class EtudiantController extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         HttpSession session = req.getSession();
         Utilisateur user = (Utilisateur) session.getAttribute("user");
-        String ctx = req.getContextPath();
-        System.out.println("ctx = " + ctx);
-
 
         // 1. SÉCURITÉ
         if (user == null) {
             resp.sendRedirect(req.getContextPath() + "/");
             return;
         }
+
         String action = req.getParameter("action");
 
-        // 2. Aiguillage
+        // 2. AIGUILLAGE
         if ("monEspace".equals(action)) {
-            // A. On charge les données fraîches
+            // A. On charge les données fraîches pour l'espace étudiant
             chargerDonneesEspace(req, session, user.getUtilisateurID());
-            // B. IMPORTANT : On utilise forward (pas redirect) pour garder les données
-            // Assurez-vous que le fichier est dans : src/main/webapp/etudiant/espace.jsp
-            req.getRequestDispatcher(ctx +"/studant/espace.jsp").forward(req, resp);
+
+            // B. CORRECTION : Ne pas inclure 'ctx' dans le dispatcher
+            req.getRequestDispatcher("/studant/espace.jsp").forward(req, resp);
         }
-        else if( action==null || "home".equals(action)) {
-            resp.sendRedirect(ctx +"/common/home.jsp");
+        else if (action == null || "home".equals(action)) {
+            // A. CHARGEMENT DES DONNÉES (Nécessaire car la session est vide au login avec JWT)
+            List<Club> clubs = service.consulterTousLesClubs();
+            List<Evenement> events = service.consulterTousLesEvenements();
+            List<MembreClub> mesClubs = service.consulterMesClubs(user.getUtilisateurID());
+
+            // B. On injecte les données dans la requête
+            req.setAttribute("tousClubs", clubs);
+            req.setAttribute("tousEvents", events);
+            req.setAttribute("mesClubs", mesClubs); // Utile pour les boutons "Adhérer" (déjà membre ?)
+
+            // C. CORRECTION : Utiliser forward() au lieu de redirect pour conserver les données
+            req.getRequestDispatcher("/common/home.jsp").forward(req, resp);
         }
     }
 
@@ -63,22 +72,19 @@ public class EtudiantController extends HttpServlet {
                 int clubId = Integer.parseInt(req.getParameter("clubId"));
                 service.adhererAuClub(user.getUtilisateurID(), clubId);
 
-                updateSessionData(session, user.getUtilisateurID());
-                // Redirection vers le contrôleur avec un message
+                // Redirection vers monEspace (qui rechargera les données fraîches via doGet)
                 resp.sendRedirect(ctx + "/etudiant?action=monEspace&msg=adhesion_ok");
             }
             else if ("participerEvent".equals(action)) {
                 int eventId = Integer.parseInt(req.getParameter("eventId"));
                 service.sInscrireEvenement(user.getUtilisateurID(), eventId);
 
-                // Pas besoin d'updateSessionData pour les events sauf si affichés en session
                 resp.sendRedirect(ctx + "/etudiant?action=monEspace&msg=inscription_ok");
             }
             else if ("quitterClub".equals(action)) {
                 int clubId = Integer.parseInt(req.getParameter("clubId"));
                 service.quitterClub(user.getUtilisateurID(), clubId);
 
-                updateSessionData(session, user.getUtilisateurID());
                 resp.sendRedirect(ctx + "/etudiant?action=monEspace&msg=quitter_ok");
             }
 
@@ -92,18 +98,15 @@ public class EtudiantController extends HttpServlet {
         List<MembreClub> mesClubs = service.consulterMesClubs(userId);
         List<Evenement> mesEvents = service.consulterMesEvenements(userId);
 
-        // Mise à jour Session (pour le menu/header)
+        // Mise à jour Session (pour la persistance si navigation via header)
         session.setAttribute("mesClubs", mesClubs);
         session.setAttribute("mesEvents", mesEvents);
 
-        // Mise à jour Requête (pour l'affichage immédiat dans la JSP)
+        // Mise à jour Requête (pour l'affichage immédiat)
         req.setAttribute("listMesClubs", mesClubs);
         req.setAttribute("listMesEvents", mesEvents);
     }
 
-    private void updateSessionData(HttpSession session, int userId) {
-        session.setAttribute("mesClubs", service.consulterMesClubs(userId));
-        // Optionnel si vous stockez aussi les events en session
-        session.setAttribute("mesEvents", service.consulterMesEvenements(userId));
-    }
+    // La méthode updateSessionData est devenue redondante car "monEspace" recharge tout,
+    // mais on peut la laisser ou la supprimer. Je l'ai supprimée ci-dessus pour alléger le code.
 }
