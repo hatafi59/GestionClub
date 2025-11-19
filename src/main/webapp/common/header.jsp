@@ -38,9 +38,13 @@
             </div>
 
         <% if (isAdminHeader) { %>
-        <a href="<%= ctx %>/admin" class="admin-link">[Admin]</a>
+            <div class="nav-link">
+        <a href="<%= ctx %>/admin">Admin Panel</a>
+            </div>
         <%} else if (presidentHeader != null) { %>
-        <a href="<%= ctx %>/president" class="nav-link">Mon Bureau</a>
+            <div class="nav-link">
+        <a href="<%= ctx %>/president">Mon Bureau</a>
+            </div>
         <% } %>
         <a href="<%= ctx %>/auth?action=logout" class="btn-nav btn-logout">Déconnexion</a>
         <% } %>

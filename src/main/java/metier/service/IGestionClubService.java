@@ -39,4 +39,13 @@ public interface IGestionClubService {
     void creerClub(Club club);
     void supprimerClub(int clubId);
     void supprimerUtilisateur(int utilisateurId);
+    // NOUVEAUX BESOINS ADMIN
+    List<Utilisateur> consulterTousLesUtilisateurs();
+    List<Utilisateur> rechercherUtilisateurs(String motCle);
+    Utilisateur trouverUtilisateurParEmail(String email);
+    Club trouverClub(int clubId); // Utile pour retrouver un club
+    int compterMembresClub(int clubId);
+    int compterEvenementsClub(int clubId);
+    void assignerPresident(int utilisateurId, int clubId); // Gère la création/mise à jour de l'adhésion
+    int compterAdhesionsParStatut(int clubId, String statut);
 }

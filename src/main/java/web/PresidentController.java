@@ -55,7 +55,7 @@ public class PresidentController extends HttpServlet {
         req.setAttribute("eventsClub", eventsClub);
         req.setAttribute("monClub", rolePresident.getClub());
 
-        req.getRequestDispatcher("/president/dashboard.jsp").forward(req, resp);
+        req.getRequestDispatcher("/president/a.jsp").forward(req, resp);
     }
 
     @Override

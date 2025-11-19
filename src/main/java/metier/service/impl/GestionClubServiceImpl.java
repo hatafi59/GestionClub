@@ -293,4 +293,89 @@ public class GestionClubServiceImpl implements IGestionClubService {
             utilisateurDao.update(u); // Utilise le update générique qui gère la transaction
         }
     }
+
+
+    @Override
+    public List<Utilisateur> consulterTousLesUtilisateurs() {
+        return utilisateurDao.findAll();
+    }
+
+    @Override
+    public List<Utilisateur> rechercherUtilisateurs(String motCle) {
+        return utilisateurDao.findByMotCle(motCle);
+    }
+    @Override
+    public Utilisateur trouverUtilisateurParEmail(String email) {
+        // findByEmail est supposée exister dans utilisateurDao (UtilisateurDaoImpl)
+        return utilisateurDao.findByEmail(email);
+    }
+
+    @Override
+    public Club trouverClub(int clubId) {
+        return clubDao.findById(clubId);
+    }
+
+    @Override
+    public int compterMembresClub(int clubId) {
+        // Compte le nombre de MembreClub qui ont un statut ACTIF/ACCEPTE
+        return (int) voirMembresDuClub(clubId).stream()
+                .filter(m -> "ACCEPTE".equalsIgnoreCase(m.getStatut()) || "ACTIF".equalsIgnoreCase(m.getStatut()))
+                .count();
+    }
+
+    @Override
+    public int compterEvenementsClub(int clubId) {
+        List<Evenement> events = consulterEvenementsDuClub(clubId);
+        return events != null ? events.size() : 0;
+    }
+
+    @Override
+    public void assignerPresident(int userId, int clubId) {
+        // 1. Tenter de trouver le membre existant
+        MembreClub mc = membreDao.findByUserAndClub(userId, clubId);
+
+        // 2. Préparer les entités et le rôle
+        Utilisateur u = utilisateurDao.findById(userId);
+        Club c = clubDao.findById(clubId);
+
+        // 3. Récupérer le rôle PRESIDENT du club (ou le créer si manquant)
+        RoleClub rolePresident = roleClubDao.findByNomAndClub("PRESIDENT", clubId);
+        if (rolePresident == null) {
+            rolePresident = new RoleClub();
+            rolePresident.setNomRole("PRESIDENT");
+            rolePresident.setClub(c);
+            roleClubDao.save(rolePresident);
+        }
+
+        if (u == null || c == null) {
+            throw new RuntimeException("Utilisateur ou Club introuvable.");
+        }
+
+        if (mc != null) {
+            // L'adhésion existe : on change le rôle et on force le statut à ACCEPTE
+            mc.setRoleClub(rolePresident);
+            mc.setStatut("ACCEPTE");
+            mc.setDateTraitement(new Date());
+            membreDao.update(mc);
+        } else {
+            // L'adhésion n'existe pas : on la crée directement comme PRESIDENT/ACCEPTE
+            MembreClub nouveauPresident = new MembreClub();
+            nouveauPresident.setUtilisateur(u);
+            nouveauPresident.setRoleClub(rolePresident);
+            nouveauPresident.setDateDemande(new Date());
+            nouveauPresident.setDateTraitement(new Date());
+            nouveauPresident.setStatut("ACCEPTE");
+            membreDao.save(nouveauPresident);
+        }
+    }
+
+    @Override
+    public int compterAdhesionsParStatut(int clubId, String statut) {
+        // voirMembresDuClub(clubId) utilise membreDao.findByClub(clubId)
+        List<MembreClub> allAdhesions = voirMembresDuClub(clubId);
+
+        return (int) allAdhesions.stream()
+                .filter(m -> statut.equalsIgnoreCase(m.getStatut()))
+                .count();
+    }
 }
